@@ -149,11 +149,11 @@ namespace IBaseFramework.Infrastructure
         /// <inheritdoc />
         public bool Update(TEntity instance, Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
         {
-            return ExecuteHelper.Execute(connection =>
+            return _unitOfWork.Execute(connection =>
             {
-                instance.SetUpdateAudit(instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId);
+                var userId = instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId;
 
-                var sqlQuery = SqlGenerator.GetUpdate(predicate, instance);
+                var sqlQuery = SqlGenerator.GetUpdate(predicate, instance, userId as object);
                 return connection.Execute(sqlQuery.GetSql(), sqlQuery.Param, transaction) > 0;
             });
         }
