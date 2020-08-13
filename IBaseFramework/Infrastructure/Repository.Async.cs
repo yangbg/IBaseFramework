@@ -152,12 +152,12 @@ namespace IBaseFramework.Infrastructure
         /// <inheritdoc />
         public async Task<bool> UpdateAsync(TEntity instance, Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
         {
-            return await ExecuteHelper.Execute(async connection =>
+            return await _unitOfWork.Execute(async connection =>
             {
-                instance.SetUpdateAudit(instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId);
+                var userId = instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId;
 
-                var sqlQuery = SqlGenerator.GetUpdate(predicate, instance);
-                return await connection.ExecuteAsync(sqlQuery.GetSql(), instance, transaction) > 0;
+                var sqlQuery = SqlGenerator.GetUpdate(predicate, instance, userId as object);
+                return await connection.ExecuteAsync(sqlQuery.GetSql(), sqlQuery.Param, transaction) > 0;
             });
         }
 
