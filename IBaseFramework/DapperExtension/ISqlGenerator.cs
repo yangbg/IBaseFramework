@@ -50,7 +50,7 @@ namespace IBaseFramework.DapperExtension
         /// <summary>
         ///     Get SQL for UPDATE Query
         /// </summary>
-        SqlQuery GetUpdate(Expression<Func<TEntity, bool>> predicate, TEntity entity);
+        SqlQuery GetUpdate(Expression<Func<TEntity, bool>> predicate, TEntity entity, object userId);
 
         /// <summary>
         ///     Get SQL for bulk UPDATE Query
