@@ -404,26 +404,38 @@ namespace IBaseFramework.DapperExtension
         }
 
         /// <inheritdoc />
-        public virtual SqlQuery GetUpdate(Expression<Func<TEntity, bool>> predicate, TEntity entity)
+        public virtual SqlQuery GetUpdate(Expression<Func<TEntity, bool>> predicate, TEntity entity, object userId)
         {
             var query = new SqlQuery(entity);
 
-            var keyPropertyInfo = IsIdentity ? new[] { IdentitySqlProperty } : KeySqlProperties;
-
-            var cacheKey = string.Concat(_sqlCacheKey, "_GetUpdateByExpression");
-            if (SqlStringCache.ContainsKey(cacheKey))
+            var cacheKey = _sqlCacheKey + "GetUpdateByExpression";
+            if (StringCache.ContainsKey(cacheKey))
             {
-                query.SqlBuilder.Append(SqlStringCache[cacheKey]);
+                query.SqlBuilder.Append(StringCache[cacheKey]);
             }
             else
             {
-                var properties = SqlProperties.Where(p => !keyPropertyInfo.Any(k => k.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase)));
+                var properties = SqlProperties.Where(p => !KeySqlProperties.Any(k => k.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase)));
                 query.SqlBuilder.Append($"UPDATE {TableName} SET {string.Join(", ", properties.Select(p => $"{GetPropertyName(p.Name)} = @{p.Name}"))} ");
 
-                SqlStringCache.TryAdd(cacheKey, query.GetSql());
+                StringCache.TryAdd(cacheKey, query.GetSql());
             }
 
             AppendWherePredicateQuery(query, predicate);
+
+            //处理公共字段
+            var commonValues = Config.UpdateCommonProperty(userId);
+            foreach (var common in commonValues)
+            {
+                if (query.Param.Keys.Contains(common.Key))
+                {
+                    query.Param[common.Key] = common.Value;
+                }
+                else
+                {
+                    query.Param.Add(common.Key, common.Value);
+                }
+            }
 
             return query;
         }
