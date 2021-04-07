@@ -10,7 +10,7 @@ using IBaseFramework.Ioc;
 
 namespace IBaseFramework.Infrastructure
 {
-    public partial class UnitOfWork : Disposable, IUnitOfWork
+    public partial class UnitOfWork : IUnitOfWork
     {
         private readonly ConcurrentDictionary<Type, dynamic> _repositoryCache = new ConcurrentDictionary<Type, dynamic>();
         public IRepository<TEntity> GetRepository<TEntity>() where TEntity : EntityBase
@@ -135,14 +135,6 @@ namespace IBaseFramework.Infrastructure
             return await PageAsync<dynamic>(sql, param, pageIndex, pageSize);
         }
 
-        #endregion
-
-        protected override void DisposeCore()
-        {
-            if (_repositoryCache != null && _repositoryCache.Count > 0)
-            {
-                _repositoryCache.Clear();
-            }
-        }
+        #endregion        
     }
 }
