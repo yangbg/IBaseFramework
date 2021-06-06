@@ -245,26 +245,5 @@ namespace IBaseFramework.Utility.Helper
         {
             WriteFile(path, str, true, Encoding.Default);
         }
-
-        /// <summary>
-        /// 写异常日志
-        /// </summary>
-        /// <param name="path"></param>
-        /// <param name="ex"></param>
-        public static void WriteException(string path, Exception ex)
-        {
-            var msg = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine
-                         + ex.Message + Environment.NewLine
-                         + ex.Source + Environment.NewLine
-                         + ex.StackTrace + Environment.NewLine
-                         + ex.TargetSite.Name;
-            WriteFile(path, msg, true);
-        }
-
-        public static void WriteException(Exception ex)
-        {
-            var path = AppDomain.CurrentDomain.BaseDirectory + "/exception.log";
-            WriteException(path, ex);
-        }
     }
 }

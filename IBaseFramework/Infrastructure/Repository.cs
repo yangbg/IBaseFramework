@@ -8,8 +8,6 @@ namespace IBaseFramework.Infrastructure
 {
     public partial class Repository<TEntity> : IRepository<TEntity> where TEntity : EntityBase
     {
-        // ReSharper disable once StaticMemberInGenericType
-        private static IUserManagerProvider _userManager = null;
         private ISqlGenerator<TEntity> _sqlGenerator = null;
         private ISqlGenerator<TEntity> SqlGenerator
         {
@@ -24,6 +22,8 @@ namespace IBaseFramework.Infrastructure
             }
         }
 
+        [ThreadStatic]
+        static IUserManagerProvider _userManager;
         private static dynamic UserId
         {
             get
@@ -31,9 +31,10 @@ namespace IBaseFramework.Infrastructure
                 if (!DapperContext.DatabaseConfiguration.RegisterUserId)
                     return 0;
 
-                if (_userManager == null)
-                    _userManager = IocManager.Resolve<IUserManagerProvider>();
+                if (_userManager != null)
+                    return _userManager.GetUserId();
 
+                _userManager = IocManager.Resolve<IUserManagerProvider>();
                 if (_userManager == null)
                 {
                     throw new Exception("Please implement the interface IUserManagerProvider!");

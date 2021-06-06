@@ -30,6 +30,9 @@ namespace IBaseFramework.DapperExtension
         {
             get
             {
+                if (TotalCount == 0 || PageSize == 0)
+                    return 0;
+
                 var totalPage = TotalCount / PageSize;
                 if (TotalCount % PageSize != 0)
                     totalPage++;

@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Dynamic;
-using System.Linq;
-using System.Text;
-using IBaseFramework.Utility.Helper;
 
 namespace IBaseFramework.Utility.Extension
 {
@@ -13,7 +10,6 @@ namespace IBaseFramework.Utility.Extension
     /// </summary>
     public static class ObjectExtension
     {
-
         /// <summary>
         /// 对象转换为泛型
         /// </summary>
@@ -89,94 +85,5 @@ namespace IBaseFramework.Utility.Extension
             return (ExpandoObject)expando;
         }
 
-        /// <summary>
-        /// 写异常信息
-        /// </summary>
-        /// <param name="ex"></param>
-        /// <param name="path"></param>
-        public static void WriteTo(this Exception ex, string path)
-        {
-            FileHelper.WriteException(path, ex);
-        }
-
-        /// <summary>
-        /// 异常信息格式化
-        /// </summary>
-        /// <param name="ex"></param>
-        /// <param name="isHideStackTrace"></param>
-        /// <returns></returns>
-        public static string Format(this Exception ex, bool isHideStackTrace = false)
-        {
-            var sb = new StringBuilder();
-            var count = 0;
-            var appString = string.Empty;
-            while (ex != null)
-            {
-                if (count > 0)
-                {
-                    appString += "  ";
-                }
-                sb.AppendLine($"{appString}异常消息：{ex.Message}");
-                sb.AppendLine($"{appString}异常类型：{ex.GetType().FullName}");
-                sb.AppendLine($"{appString}异常方法：{(ex.TargetSite == null ? null : ex.TargetSite.Name)}");
-                sb.AppendLine($"{appString}异常源：{ex.Source}");
-                if (!isHideStackTrace && ex.StackTrace != null)
-                {
-                    sb.AppendLine($"{appString}异常堆栈：{ex.StackTrace}");
-                }
-                if (ex.InnerException != null)
-                {
-                    sb.AppendLine($"{appString}内部异常：");
-                    count++;
-                }
-                ex = ex.InnerException;
-            }
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// 获取枚举的描述文本
-        /// </summary>
-        /// <param name="enumObj"></param>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static string GetEnumText(this Type enumObj, string value)
-        {
-            try
-            {
-                var strValue = value;
-                var name = enumObj.IsValueType ? Enum.GetName(enumObj, Convert.ToInt32(value)) : enumObj.GetName(value);
-
-                var fileInfo = enumObj.GetField(name);
-                if (fileInfo == null)
-                    return strValue;
-
-                var objs = fileInfo.GetCustomAttributes(typeof(DescriptionAttribute), false);
-                if (objs.Length <= 0)
-                    return fileInfo.Name;
-
-                var da = (DescriptionAttribute)objs[0];
-                strValue = da.Description;
-
-                return strValue;
-            }
-            catch (Exception)
-            {
-                return "";
-            }
-        }
-
-        #region 根据值获取枚举的name
-
-        public static string GetName(this Type type, string value)
-        {
-            if (type == null) return string.Empty;
-
-            var firstOrDefault = type.GetFields().FirstOrDefault(u => (string)u.GetValue(new object()) == value);
-
-            return firstOrDefault?.Name ?? string.Empty;
-        }
-
-        #endregion
     }
 }

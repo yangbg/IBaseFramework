@@ -18,6 +18,9 @@ namespace IBaseFramework.Infrastructure
         {
             return ExecuteHelper.Execute(connection =>
             {
+                if (instance == null)
+                    return false;
+
                 instance.SetCreateAudit(instance.CreateUserId > 0 ? instance.CreateUserId : UserId);
 
                 var queryResult = SqlGenerator.GetInsert(instance);
@@ -37,17 +40,19 @@ namespace IBaseFramework.Infrastructure
         {
             return ExecuteHelper.Execute(connection =>
             {
-                var entities = instances.ToList();
-                foreach (var instance in entities)
+                if (instances == null || !instances.Any())
+                    return false;
+
+                foreach (var instance in instances)
                 {
                     instance.SetCreateAudit(instance.CreateUserId > 0 ? instance.CreateUserId : UserId);
                 }
 
                 var listGroup = new List<List<TEntity>>();
                 var j = 2000;//每 2k 条执行一次
-                for (var i = 0; i < entities.Count; i += 2000)
+                for (var i = 0; i < instances.Count(); i += 2000)
                 {
-                    var cList = entities.Take(j).Skip(i).ToList();
+                    var cList = instances.Take(j).Skip(i).ToList();
                     j += 2000;
                     listGroup.Add(cList);
                 }
@@ -59,13 +64,13 @@ namespace IBaseFramework.Infrastructure
                     result += connection.Execute(queryResult.GetSql(), queryResult.Param, transaction);
                 }
 
-                return result == entities.Count;
+                return result == instances.Count();
             });
         }
 
         #endregion
 
-        #region Count
+        #region Function
 
         /// <inheritdoc />
         public int Count(IDbTransaction transaction = null)
@@ -96,6 +101,46 @@ namespace IBaseFramework.Infrastructure
             {
                 var queryResult = SqlGenerator.GetCount(predicate, distinctField);
                 return connection.QueryFirstOrDefault<int>(queryResult.GetSql(), queryResult.Param, transaction);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual TResult? Sum<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return ExecuteHelper.Execute(connection =>
+            {
+                var queryResult = SqlGenerator.GetSum(predicate, condition);
+                return connection.QueryFirstOrDefault<TResult?>(queryResult.GetSql(), queryResult.Param, transaction);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual TResult? Min<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return ExecuteHelper.Execute(connection =>
+            {
+                var queryResult = SqlGenerator.GetMin(predicate, condition);
+                return connection.QueryFirstOrDefault<TResult?>(queryResult.GetSql(), queryResult.Param, transaction);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual TResult? Max<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return ExecuteHelper.Execute(connection =>
+            {
+                var queryResult = SqlGenerator.GetMax(predicate, condition);
+                return connection.QueryFirstOrDefault<TResult?>(queryResult.GetSql(), queryResult.Param, transaction);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual TResult? Avg<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return ExecuteHelper.Execute(connection =>
+            {
+                var queryResult = SqlGenerator.GetAvg(predicate, condition);
+                return connection.QueryFirstOrDefault<TResult?>(queryResult.GetSql(), queryResult.Param, transaction);
             });
         }
 
@@ -149,7 +194,7 @@ namespace IBaseFramework.Infrastructure
         /// <inheritdoc />
         public bool Update(TEntity instance, Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
         {
-            return _unitOfWork.Execute(connection =>
+            return ExecuteHelper.Execute(connection =>
             {
                 var userId = instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId;
 
@@ -175,7 +220,7 @@ namespace IBaseFramework.Infrastructure
         }
 
         /// <inheritdoc />
-        public bool Update(Expression<Func<TEntity, TEntity>> updateValues, Expression<Func<TEntity, bool>> predicate, object updateUserId = null, IDbTransaction transaction = null)
+        public bool Update(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, TEntity>> updateValues, object updateUserId = null, IDbTransaction transaction = null)
         {
             return ExecuteHelper.Execute(connection =>
             {
@@ -191,47 +236,47 @@ namespace IBaseFramework.Infrastructure
         #region Get
 
         /// <inheritdoc />
-        public TEntity Get(object id, IDbTransaction transaction = null)
+        public TEntity Get(object id, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
             return ExecuteHelper.Execute(connection =>
             {
-                var queryResult = SqlGenerator.GetSelectById(id);
+                var queryResult = SqlGenerator.GetSelectById(id, filterColumns);
                 return connection.QuerySingleOrDefault<TEntity>(queryResult.GetSql(), queryResult.Param, transaction);
             });
         }
 
         /// <inheritdoc />
-        public TEntity Get(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
+        public TEntity Get(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
             return ExecuteHelper.Execute(connection =>
             {
-                var queryResult = SqlGenerator.GetSelect(predicate, true);
+                var queryResult = SqlGenerator.GetSelect(predicate, filterColumns, true);
                 return connection.QueryFirstOrDefault<TEntity>(queryResult.GetSql(), queryResult.Param, transaction);
             });
         }
 
         /// <inheritdoc />
-        public IEnumerable<TEntity> GetAll(IDbTransaction transaction = null)
+        public IEnumerable<TEntity> GetAll(Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
-            return GetList(null, transaction);
+            return GetList(null, filterColumns, transaction);
         }
 
         /// <inheritdoc />
-        public IEnumerable<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
+        public IEnumerable<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
             return ExecuteHelper.Execute(connection =>
             {
-                var queryResult = SqlGenerator.GetSelect(predicate, false);
+                var queryResult = SqlGenerator.GetSelect(predicate, filterColumns, false);
                 return connection.Query<TEntity>(queryResult.GetSql(), queryResult.Param, transaction);
             });
         }
 
         /// <inheritdoc />
-        public PagedList<TEntity> GetPageList(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null)
+        public PagedList<TEntity> GetPageList(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null, Expression<Func<TEntity, object>> filterColumns = null)
         {
             return ExecuteHelper.Execute(connection =>
             {
-                var sqlQuery = SqlGenerator.GetSelect(predicate, false);
+                var sqlQuery = SqlGenerator.GetSelect(predicate, filterColumns, false);
                 if (!string.IsNullOrEmpty(orderBy))
                 {
                     sqlQuery.SqlBuilder.Append(" order by " + orderBy);
@@ -254,39 +299,6 @@ namespace IBaseFramework.Infrastructure
 
         #endregion
 
-        #region In
-
-        /// <inheritdoc />
-        public IEnumerable<TEntity> In(IEnumerable<dynamic> keys)
-        {
-            return ExecuteHelper.Execute(connection =>
-            {
-                var objects = keys.ToList();
-                if (!objects.Any())
-                    return null;
-
-                var sqlQuery = SqlGenerator.GetIn(objects);
-
-                return connection.Query<TEntity>(sqlQuery.GetSql(), sqlQuery.Param);
-            });
-        }
-
-        /// <inheritdoc />
-        public IEnumerable<TEntity> In(Expression<Func<TEntity, object>> field, IEnumerable<dynamic> keys)
-        {
-            return ExecuteHelper.Execute(connection =>
-            {
-                var objects = keys.ToList();
-                if (!objects.Any())
-                    return null;
-
-                var sqlQuery = SqlGenerator.GetIn(objects, field);
-                return connection.Query<TEntity>(sqlQuery.GetSql(), sqlQuery.Param);
-            });
-        }
-
-        #endregion
-
         #region Exist
 
         /// <inheritdoc />
@@ -300,5 +312,6 @@ namespace IBaseFramework.Infrastructure
         }
 
         #endregion
+
     }
 }

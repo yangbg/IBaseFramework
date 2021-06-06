@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using IBaseFramework.Encryption;
+using System.Text;
 
 namespace IBaseFramework.Utility.Helper
 {
@@ -36,7 +36,7 @@ namespace IBaseFramework.Utility.Helper
             if (!privateKey.IsNullOrEmpty() && !privateValue.IsNullOrEmpty())
                 sortDic.Add(privateKey, privateValue);
             var str = string.Join("&", sortDic.Select(u => u.Key + "=" + u.Value));
-            var signature = EncryptionFactory.Md5Encrypt(str);
+            var signature = SecurityHelper.Md5Encrypt(str, Encoding.UTF8).ConfigureAwait(false).GetAwaiter().GetResult();
             return signature;
         }
     }

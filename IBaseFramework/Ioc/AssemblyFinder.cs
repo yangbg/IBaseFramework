@@ -12,9 +12,7 @@ namespace IBaseFramework.Ioc
 
         public static AssemblyFinder Instance(string startsWithName)
         {
-            return
-                   Singleton<AssemblyFinder>.Instance ??
-                   (Singleton<AssemblyFinder>.Instance = new AssemblyFinder(startsWithName));
+            return new AssemblyFinder(startsWithName);
         }
 
     }

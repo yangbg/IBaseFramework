@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
-using IBaseFramework.Base;
 using IBaseFramework.DapperExtension;
-using IBaseFramework.Ioc;
 using MySql.Data.MySqlClient;
 
 namespace IBaseFramework.Infrastructure
@@ -11,30 +9,39 @@ namespace IBaseFramework.Infrastructure
     public class ExecuteHelper
     {
         [ThreadStatic]
-        private static byte _isClose;
-
+        static IDbTransaction _dbTransaction;
         public static void Transaction(Action<IDbTransaction> action)
         {
-            _isClose = 1;
+            if (_dbTransaction != null)
+            {
+                action(_dbTransaction);
+            }
+            else
+            {
+                TransactionInner(action);
+            }
+        }
 
+        private static void TransactionInner(Action<IDbTransaction> action)
+        {
             var dbConnection = ConnectionFactory.CreateConnection(DapperContext.DatabaseConfiguration);
-            var dbTransaction = dbConnection.BeginTransaction();
+            _dbTransaction = dbConnection.BeginTransaction(IsolationLevel.ReadCommitted);
             try
             {
-                action(dbTransaction);
+                action(_dbTransaction);
 
-                dbTransaction.Commit();
+                _dbTransaction.Commit();
             }
             catch (Exception)
             {
-                dbTransaction.Rollback();
+                _dbTransaction.Rollback();
                 throw;
             }
             finally
             {
-                dbTransaction?.Dispose();
+                _dbTransaction?.Dispose();
                 dbConnection?.Close();
-                _isClose = 0;
+                _dbTransaction = null;
             }
         }
 
@@ -52,7 +59,7 @@ namespace IBaseFramework.Infrastructure
             }
             finally
             {
-                if (_isClose == 0)
+                if (_dbTransaction == null)
                 {
                     dbConnection?.Close();
                 }

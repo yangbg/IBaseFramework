@@ -1,13 +1,10 @@
 ﻿using System;
-using IBaseFramework.DapperExtension;
 
 namespace IBaseFramework.Infrastructure
 {
     public class DapperContext
     {
         public static event Action<DapperContextConfig> DatabaseConfigurationEventHandle;
-
-        private static DapperContextConfig _dapperContextConfig = null;
 
         /// <summary>
         /// 配置
@@ -16,19 +13,16 @@ namespace IBaseFramework.Infrastructure
         {
             get
             {
-                if (_dapperContextConfig != null)
-                    return _dapperContextConfig;
-
                 if (DatabaseConfigurationEventHandle == null)
                     throw new Exception("Please register database configuration event first!");
 
-                _dapperContextConfig = new DapperContextConfig();
-                DatabaseConfigurationEventHandle.Invoke(_dapperContextConfig);
+                var dapperContextConfig = new DapperContextConfig();
+                DatabaseConfigurationEventHandle.Invoke(dapperContextConfig);
 
-                if (string.IsNullOrEmpty(_dapperContextConfig.ConnectionString))
+                if (string.IsNullOrEmpty(dapperContextConfig.ConnectionString))
                     throw new Exception("ConnectionString can not be null!");
 
-                return _dapperContextConfig;
+                return dapperContextConfig;
             }
         }
     }

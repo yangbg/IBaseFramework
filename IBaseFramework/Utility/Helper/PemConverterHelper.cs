@@ -3,9 +3,9 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace IBaseFramework.Encryption
+namespace IBaseFramework.Utility.Helper
 {
-    public class PemConverter
+    public class PemConverterHelper
     {
         /// <summary>
         /// 将pem格式公钥(1024 or 2048)转换为RSAParameters

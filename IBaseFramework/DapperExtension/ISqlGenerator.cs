@@ -65,12 +65,12 @@ namespace IBaseFramework.DapperExtension
         /// <summary>
         ///     Get SQL for SELECT Query by Id
         /// </summary>
-        SqlQuery GetSelectById(object id);
-        
+        SqlQuery GetSelectById(object id, Expression<Func<TEntity, object>> filterColumns = null);
+
         /// <summary>
         ///     Get SQL for SELECT Query
         /// </summary>
-        SqlQuery GetSelect(Expression<Func<TEntity, bool>> predicate, bool getFirst);
+        SqlQuery GetSelect(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, bool getFirst = false);
 
         /// <summary>
         ///     Get SQL for DELETE Query
@@ -83,11 +83,39 @@ namespace IBaseFramework.DapperExtension
         SqlQuery GetDelete(Expression<Func<TEntity, bool>> predicate, object userId, bool isLogicDelete = true);
 
         /// <summary>
-        ///    Get in
+        /// GetSum
         /// </summary>
-        /// <param name="keys"></param>
-        /// <param name="field"></param>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="predicate"></param>
+        /// <param name="condition"></param>
         /// <returns></returns>
-        SqlQuery GetIn(IEnumerable<dynamic> keys, Expression<Func<TEntity, object>> field = null);
+        SqlQuery GetSum<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct;
+
+        /// <summary>
+        /// GetMin
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="predicate"></param>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        SqlQuery GetMin<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct;
+
+        /// <summary>
+        /// GetMax
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="predicate"></param>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        SqlQuery GetMax<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct;
+
+        /// <summary>
+        /// GetAvg
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="predicate"></param>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        SqlQuery GetAvg<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct;
     }
 }

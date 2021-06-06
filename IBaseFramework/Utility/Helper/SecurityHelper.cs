@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IBaseFramework.Encryption
+namespace IBaseFramework.Utility.Helper
 {
     public class SecurityHelper
     {
@@ -26,21 +26,6 @@ namespace IBaseFramework.Encryption
             return await Task.FromResult(BitConverter.ToString(data).Replace("-", ""));
         }
 
-        /// <summary>
-        /// 验证哈希值
-        /// </summary>
-        /// <param name="hashAlgorithm"> 所有加密哈希算法实现均必须从中派生的基类 </param>
-        /// <param name="unhashedText"> 未加密的字符串 </param>
-        /// <param name="hashedText"> 经过加密的哈希值 </param>
-        /// <param name="encoding"> 字符编码 </param>
-        /// <returns></returns>
-        private static async Task<bool> VerifyHashValue(HashAlgorithm hashAlgorithm, string unhashedText, string hashedText,
-            Encoding encoding)
-        {
-            return await Task.FromResult(string.Equals(HashEncrypt(hashAlgorithm, unhashedText, encoding).Result, hashedText,
-                StringComparison.OrdinalIgnoreCase));
-        }
-
         #endregion 通用加密算法
 
         #region 哈希加密算法
@@ -58,17 +43,6 @@ namespace IBaseFramework.Encryption
             return await HashEncrypt(MD5.Create(), input, encoding);
         }
 
-        /// <summary>
-        /// 验证 MD5 值
-        /// </summary>
-        /// <param name="input"> 未加密的字符串 </param>
-        /// <param name="encoding"> 字符编码 </param>
-        /// <returns></returns>
-        public static async Task<bool> VerifyMd5Value(string input, Encoding encoding)
-        {
-            return await VerifyHashValue(MD5.Create(), input, Md5Encrypt(input, encoding).Result, encoding);
-        }
-
         #endregion MD5 算法
 
         #region SHA1 算法
@@ -83,18 +57,6 @@ namespace IBaseFramework.Encryption
         {
             return await HashEncrypt(SHA1.Create(), input, encoding);
         }
-
-        /// <summary>
-        /// 验证 SHA1 值
-        /// </summary>
-        /// <param name="input"> 未加密的字符串 </param>
-        /// <param name="encoding"> 字符编码 </param>
-        /// <returns></returns>
-        public static async Task<bool> VerifySha1Value(string input, Encoding encoding)
-        {
-            return await VerifyHashValue(SHA1.Create(), input, Sha1Encrypt(input, encoding).Result, encoding);
-        }
-
         #endregion SHA1 算法
 
         #region SHA256 算法
@@ -108,17 +70,6 @@ namespace IBaseFramework.Encryption
         public static async Task<string> Sha256Encrypt(string input, Encoding encoding)
         {
             return await HashEncrypt(SHA256.Create(), input, encoding);
-        }
-
-        /// <summary>
-        /// 验证 SHA256 值
-        /// </summary>
-        /// <param name="input"> 未加密的字符串 </param>
-        /// <param name="encoding"> 字符编码 </param>
-        /// <returns></returns>
-        public static async Task<bool> VerifySha256Value(string input, Encoding encoding)
-        {
-            return await VerifyHashValue(SHA256.Create(), input, Sha256Encrypt(input, encoding).Result, encoding);
         }
 
         #endregion SHA256 算法
@@ -136,17 +87,6 @@ namespace IBaseFramework.Encryption
             return await HashEncrypt(SHA384.Create(), input, encoding);
         }
 
-        /// <summary>
-        /// 验证 SHA384 值
-        /// </summary>
-        /// <param name="input"> 未加密的字符串 </param>
-        /// <param name="encoding"> 字符编码 </param>
-        /// <returns></returns>
-        public static async Task<bool> VerifySha384Value(string input, Encoding encoding)
-        {
-            return await VerifyHashValue(SHA256.Create(), input, Sha384Encrypt(input, encoding).Result, encoding);
-        }
-
         #endregion SHA384 算法
 
         #region SHA512 算法
@@ -161,18 +101,6 @@ namespace IBaseFramework.Encryption
         {
             return await HashEncrypt(SHA512.Create(), input, encoding);
         }
-
-        /// <summary>
-        /// 验证 SHA512 值
-        /// </summary>
-        /// <param name="input"> 未加密的字符串 </param>
-        /// <param name="encoding"> 字符编码 </param>
-        /// <returns></returns>
-        public static async Task<bool> VerifySha512Value(string input, Encoding encoding)
-        {
-            return await VerifyHashValue(SHA512.Create(), input, Sha512Encrypt(input, encoding).Result, encoding);
-        }
-
         #endregion SHA512 算法
 
         #region HMAC-MD5 加密

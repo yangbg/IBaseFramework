@@ -19,6 +19,9 @@ namespace IBaseFramework.Infrastructure
         {
             return await ExecuteHelper.Execute(async connection =>
             {
+                if (instance == null)
+                    return false;
+
                 instance.SetCreateAudit(instance.CreateUserId > 0 ? instance.CreateUserId : UserId);
 
                 var queryResult = SqlGenerator.GetInsert(instance);
@@ -29,7 +32,7 @@ namespace IBaseFramework.Infrastructure
                     return SetValue(newId, instance);
                 }
 
-                return await connection.ExecuteAsync(queryResult.GetSql(), instance, transaction) > 0;
+                return await connection.ExecuteAsync(queryResult.GetSql(), instance, transaction).ConfigureAwait(false) > 0;
             });
         }
 
@@ -39,17 +42,19 @@ namespace IBaseFramework.Infrastructure
         {
             return await ExecuteHelper.Execute(async connection =>
             {
-                var entities = instances.ToList();
-                foreach (var instance in entities)
+                if (instances == null || !instances.Any())
+                    return false;
+
+                foreach (var instance in instances)
                 {
                     instance.SetCreateAudit(instance.CreateUserId > 0 ? instance.CreateUserId : UserId);
                 }
 
                 var listGroup = new List<List<TEntity>>();
                 var j = 2000;//每 2k 条执行一次
-                for (var i = 0; i < entities.Count; i += 2000)
+                for (var i = 0; i < instances.Count(); i += 2000)
                 {
-                    var cList = entities.Take(j).Skip(i).ToList();
+                    var cList = instances.Take(j).Skip(i).ToList();
                     j += 2000;
                     listGroup.Add(cList);
                 }
@@ -58,21 +63,21 @@ namespace IBaseFramework.Infrastructure
                 foreach (var groupList in listGroup)
                 {
                     var queryResult = SqlGenerator.GetBulkInsert(groupList);
-                    result += await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction);
+                    result += await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
                 }
 
-                return result == entities.Count;
+                return result == instances.Count();
             });
         }
 
         #endregion
 
-        #region Count Async
+        #region Function Async
 
         /// <inheritdoc />
         public async Task<int> CountAsync(IDbTransaction transaction = null)
         {
-            return await CountAsync(null, transaction);
+            return await CountAsync(null, transaction).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -88,7 +93,7 @@ namespace IBaseFramework.Infrastructure
         /// <inheritdoc />
         public async Task<int> CountAsync(Expression<Func<TEntity, object>> distinctField, IDbTransaction transaction = null)
         {
-            return await CountAsync(distinctField, null, transaction);
+            return await CountAsync(distinctField, null, transaction).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -98,6 +103,46 @@ namespace IBaseFramework.Infrastructure
             {
                 var queryResult = SqlGenerator.GetCount(predicate, distinctField);
                 return await connection.QueryFirstOrDefaultAsync<int>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual async Task<TResult?> SumAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return await ExecuteHelper.Execute(async connection =>
+            {
+                var queryResult = SqlGenerator.GetSum(predicate, condition);
+                return await connection.QueryFirstOrDefaultAsync<TResult?>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual async Task<TResult?> MinAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return await ExecuteHelper.Execute(async connection =>
+            {
+                var queryResult = SqlGenerator.GetMin(predicate, condition);
+                return await connection.QueryFirstOrDefaultAsync<TResult?>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual async Task<TResult?> MaxAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return await ExecuteHelper.Execute(async connection =>
+            {
+                var queryResult = SqlGenerator.GetMax(predicate, condition);
+                return await connection.QueryFirstOrDefaultAsync<TResult?>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
+            });
+        }
+
+        /// <inheritdoc />
+        public virtual async Task<TResult?> AvgAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct
+        {
+            return await ExecuteHelper.Execute(async connection =>
+            {
+                var queryResult = SqlGenerator.GetAvg(predicate, condition);
+                return await connection.QueryFirstOrDefaultAsync<TResult?>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
             });
         }
 
@@ -113,7 +158,7 @@ namespace IBaseFramework.Infrastructure
                 var userId = updateUserId ?? UserId;
 
                 var queryResult = SqlGenerator.GetDelete(predicate, userId as object, isLogicDelete);
-                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction) > 0;
+                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false) > 0;
             });
         }
 
@@ -129,7 +174,7 @@ namespace IBaseFramework.Infrastructure
                 }
 
                 var queryResult = SqlGenerator.GetDelete(instance, isLogicDelete);
-                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction) > 0;
+                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false) > 0;
             });
         }
 
@@ -145,19 +190,19 @@ namespace IBaseFramework.Infrastructure
                 instance.SetUpdateAudit(instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId);
 
                 var sqlQuery = SqlGenerator.GetUpdate(instance);
-                return await connection.ExecuteAsync(sqlQuery.GetSql(), instance, transaction) > 0;
+                return await connection.ExecuteAsync(sqlQuery.GetSql(), instance, transaction).ConfigureAwait(false) > 0;
             });
         }
 
         /// <inheritdoc />
         public async Task<bool> UpdateAsync(TEntity instance, Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
         {
-            return await _unitOfWork.Execute(async connection =>
+            return await ExecuteHelper.Execute(async connection =>
             {
                 var userId = instance.UpdateUserId > 0 ? instance.UpdateUserId : UserId;
 
                 var sqlQuery = SqlGenerator.GetUpdate(predicate, instance, userId as object);
-                return await connection.ExecuteAsync(sqlQuery.GetSql(), sqlQuery.Param, transaction) > 0;
+                return await connection.ExecuteAsync(sqlQuery.GetSql(), sqlQuery.Param, transaction).ConfigureAwait(false) > 0;
             });
         }
 
@@ -173,19 +218,19 @@ namespace IBaseFramework.Infrastructure
                 }
 
                 var queryResult = SqlGenerator.GetBulkUpdate(entities);
-                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction) > 0;
+                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false) > 0;
             });
         }
 
         /// <inheritdoc />
-        public async Task<bool> UpdateAsync(Expression<Func<TEntity, TEntity>> updateValues, Expression<Func<TEntity, bool>> predicate, object updateUserId = null, IDbTransaction transaction = null)
+        public async Task<bool> UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, TEntity>> updateValues, object updateUserId = null, IDbTransaction transaction = null)
         {
             return await ExecuteHelper.Execute(async connection =>
             {
                 var userId = updateUserId ?? UserId;
 
                 var queryResult = SqlGenerator.GetUpdate(updateValues, predicate, userId as object);
-                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction) > 0;
+                return await connection.ExecuteAsync(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false) > 0;
             });
         }
 
@@ -194,49 +239,47 @@ namespace IBaseFramework.Infrastructure
         #region Get Async
 
         /// <inheritdoc />
-        public async Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
+        public async Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
             return await ExecuteHelper.Execute(async connection =>
             {
-                var queryResult = SqlGenerator.GetSelect(predicate, true);
-                return await connection.QueryFirstOrDefaultAsync<TEntity>(queryResult.GetSql(), queryResult.Param,
-                    transaction).ConfigureAwait(false);
+                var queryResult = SqlGenerator.GetSelect(predicate, filterColumns, true);
+                return await connection.QueryFirstOrDefaultAsync<TEntity>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
             });
         }
 
         /// <inheritdoc />
-        public async Task<TEntity> GetAsync(object id, IDbTransaction transaction = null)
+        public async Task<TEntity> GetAsync(object id, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
             return await ExecuteHelper.Execute(async connection =>
             {
-                var queryResult = SqlGenerator.GetSelectById(id);
-                return await connection.QuerySingleOrDefaultAsync<TEntity>(queryResult.GetSql(), queryResult.Param,
-                    transaction).ConfigureAwait(false);
+                var queryResult = SqlGenerator.GetSelectById(id, filterColumns);
+                return await connection.QuerySingleOrDefaultAsync<TEntity>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
             });
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<TEntity>> GetAllAsync(IDbTransaction transaction = null)
+        public async Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
-            return await GetListAsync(null, transaction);
+            return await GetListAsync(null, filterColumns, transaction).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null)
+        public async Task<IEnumerable<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null)
         {
             return await ExecuteHelper.Execute(async connection =>
             {
-                var queryResult = SqlGenerator.GetSelect(predicate, false);
+                var queryResult = SqlGenerator.GetSelect(predicate, filterColumns, false);
                 return await connection.QueryAsync<TEntity>(queryResult.GetSql(), queryResult.Param, transaction).ConfigureAwait(false);
             });
         }
 
         /// <inheritdoc />
-        public async Task<PagedList<TEntity>> GetPageListAsync(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null)
+        public async Task<PagedList<TEntity>> GetPageListAsync(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null, Expression<Func<TEntity, object>> filterColumns = null)
         {
             return await ExecuteHelper.Execute(async connection =>
             {
-                var sqlQuery = SqlGenerator.GetSelect(predicate, false);
+                var sqlQuery = SqlGenerator.GetSelect(predicate, filterColumns, false);
                 if (!string.IsNullOrEmpty(orderBy))
                 {
                     sqlQuery.SqlBuilder.Append(" order by " + orderBy);
@@ -259,39 +302,6 @@ namespace IBaseFramework.Infrastructure
 
         #endregion
 
-        #region In Async
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<TEntity>> InAsync(IEnumerable<dynamic> keys)
-        {
-            return await ExecuteHelper.Execute(async connection =>
-            {
-                var objects = keys.ToList();
-                if (!objects.Any())
-                    return null;
-
-                var sqlQuery = SqlGenerator.GetIn(objects);
-
-                return await connection.QueryAsync<TEntity>(sqlQuery.GetSql(), sqlQuery.Param).ConfigureAwait(false);
-            });
-        }
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<TEntity>> InAsync(Expression<Func<TEntity, object>> field, IEnumerable<dynamic> keys)
-        {
-            return await ExecuteHelper.Execute(async connection =>
-            {
-                var objects = keys.ToList();
-                if (!objects.Any())
-                    return null;
-
-                var sqlQuery = SqlGenerator.GetIn(objects, field);
-                return await connection.QueryAsync<TEntity>(sqlQuery.GetSql(), sqlQuery.Param).ConfigureAwait(false);
-            });
-        }
-
-        #endregion
-
         #region Exist Async
 
         /// <inheritdoc />
@@ -305,5 +315,6 @@ namespace IBaseFramework.Infrastructure
         }
 
         #endregion
+
     }
 }

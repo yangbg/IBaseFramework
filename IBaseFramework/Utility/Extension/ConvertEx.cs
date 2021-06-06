@@ -3,7 +3,7 @@ using IBaseFramework.Utility.Helper;
 
 namespace IBaseFramework.Utility.Extension
 {
-    public static class StringEx
+    public static class ConvertEx
     {
         private static readonly DateTime DefaultTime = DateTime.Parse("1900-01-01");
 
@@ -54,8 +54,7 @@ namespace IBaseFramework.Utility.Extension
                 !str.IsFloat())
                 return defaultValue;
 
-            int rv;
-            if (int.TryParse(str, out rv))
+            if (int.TryParse(str, out var rv))
                 return rv;
 
             return Convert.ToInt32(ToFloat(str, defaultValue));
@@ -87,15 +86,13 @@ namespace IBaseFramework.Utility.Extension
         {
             if (strValue == null) return defaultValue;
 
-            long num;
-            if (long.TryParse(strValue, out num))
+            if (long.TryParse(strValue, out var num))
             {
                 return num;
             }
             else
             {
-                decimal dem = 0;
-                if (decimal.TryParse(strValue, out dem))
+                if (decimal.TryParse(strValue, out var dem))
                 {
                     return Convert.ToInt64(dem);
                 }
@@ -118,6 +115,18 @@ namespace IBaseFramework.Utility.Extension
 
         #endregion
 
+        #region ToDecimal
+        public static decimal ToDecimal(this string c, decimal defaultValue)
+        {
+            return (decimal)c.ToFloat((float)defaultValue);
+        }
+
+        public static decimal ToDecimal(this object c, decimal defaultValue)
+        {
+            return (decimal)c.ToFloat((float)defaultValue);
+        }
+        #endregion
+
         #region ToDateTime
         /// <summary>
         /// 将对象转换为日期时间类型
@@ -129,8 +138,7 @@ namespace IBaseFramework.Utility.Extension
         {
             if (string.IsNullOrEmpty(str)) return defaultValue;
 
-            DateTime dateTime;
-            if (DateTime.TryParse(str, out dateTime))
+            if (DateTime.TryParse(str, out var dateTime))
                 return dateTime;
 
             return defaultValue;
@@ -159,16 +167,80 @@ namespace IBaseFramework.Utility.Extension
         }
         #endregion
 
-        #region ToDecimal
-        public static decimal ToDecimal(this string c, decimal defaultValue)
+        #region UtcDateTimeEx
+
+        private static readonly long StartTicks = new DateTime(1970, 1, 1).Ticks;
+
+        /// <summary>
+        /// 获取距离 1970-01-01（格林威治时间）的秒数
+        /// </summary>
+        /// <param name="localTime"></param>
+        /// <returns></returns>
+        public static long ToUtcSeconds(this DateTime localTime)
         {
-            return (decimal)c.ToFloat((float)defaultValue);
+            return (localTime.ToUniversalTime().Ticks - StartTicks) / 10000000;
         }
 
-        public static decimal ToDecimal(this object c, decimal defaultValue)
+        /// <summary>
+        /// 距离 1970-01-01（格林威治时间）的秒数转换为当前时间
+        /// </summary>
+        /// <param name="seconds"></param>
+        /// <returns></returns>
+        public static DateTime FromUtcSeconds(this long seconds)
         {
-            return (decimal)c.ToFloat((float)defaultValue);
+            return DateTimeOffset.FromUnixTimeSeconds(seconds).LocalDateTime;// new DateTime(1970, 1, 1).AddSeconds(seconds).ToLocalTime();
         }
+
+        /// <summary>
+        /// 获取距离 1970-01-01（格林威治时间）的毫秒数
+        /// </summary>
+        /// <param name="localTime"></param>
+        /// <returns></returns>
+        public static long ToUtcMillSeconds(this DateTime localTime)
+        {
+            return (localTime.ToUniversalTime().Ticks - StartTicks) / 10000;
+        }
+
+        /// <summary>
+        /// 距离 1970-01-01（格林威治时间）的秒数转换为当前时间
+        /// </summary>
+        /// <param name="millSeconds"></param>
+        /// <returns></returns>
+        public static DateTime FromUtcMillSeconds(this long millSeconds)
+        {
+            return DateTimeOffset.FromUnixTimeMilliseconds(millSeconds).LocalDateTime;
+        }
+
+        /// <summary>
+        /// 获取距离 1970-01-01（格林威治时间）Ticks  精确到0.1微秒（千万分之一秒）
+        /// </summary>
+        /// <param name="localTime"></param>
+        /// <returns></returns>
+        public static long ToUtcTicks(this DateTime localTime)
+        {
+            return localTime.ToUniversalTime().Ticks - StartTicks;
+        }
+
+        /// <summary>
+        /// 获取距离 1970-01-01（本地/北京时间）的秒数
+        /// </summary>
+        /// <param name="localTime"></param>
+        /// <returns></returns>
+        public static long ToLocalSeconds(this DateTime localTime)
+        {
+            return (localTime.Ticks - StartTicks) / 10000000;
+        }
+
+        /// <summary>
+        /// 距离 1970-01-01（本地/北京时间）的秒数转换为当前时间
+        /// </summary>
+        /// <param name="seconds"></param>
+        /// <returns></returns>
+        public static DateTime FromLocalSeconds(this long seconds)
+        {
+            return new DateTime(1970, 1, 1).AddSeconds(seconds);
+        } 
+
         #endregion
 
     }

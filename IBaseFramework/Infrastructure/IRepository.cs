@@ -15,7 +15,7 @@ namespace IBaseFramework.Infrastructure
     {
         Expression<Func<TEntity, bool>> ExpressionTrue();
 
-        #region Count
+        #region Function
 
         /// <summary>
         ///     Get number of rows
@@ -37,6 +37,26 @@ namespace IBaseFramework.Infrastructure
         /// </summary>
         int Count(Expression<Func<TEntity, object>> distinctField, Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null);
 
+        /// <summary>
+        ///     Get number of Sum with WHERE clause
+        /// </summary>
+        TResult? Sum<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
+        /// <summary>
+        ///     Get number of Min with WHERE clause
+        /// </summary>
+        TResult? Min<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
+        /// <summary>
+        ///     Get number of Max with WHERE clause
+        /// </summary>
+        TResult? Max<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
+        /// <summary>
+        ///    Get number of Avg with WHERE clause
+        /// </summary>
+        TResult? Avg<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
         #endregion
 
         #region Get
@@ -44,41 +64,27 @@ namespace IBaseFramework.Infrastructure
         /// <summary>
         ///     Get first object
         /// </summary>
-        TEntity Get(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null);
+        TEntity Get(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get object by Id
         /// </summary>
-        TEntity Get(object id, IDbTransaction transaction = null);
+        TEntity Get(object id, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get all objects
         /// </summary>
-        IEnumerable<TEntity> GetAll(IDbTransaction transaction = null);
+        IEnumerable<TEntity> GetAll(Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get all objects
         /// </summary>
-        IEnumerable<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null);
+        IEnumerable<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get page objects
         /// </summary>
-        PagedList<TEntity> GetPageList(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null);
-
-        #endregion
-
-        #region In
-
-        /// <summary>
-        ///     Get objects by keys
-        /// </summary>
-        IEnumerable<TEntity> In(IEnumerable<dynamic> keys);
-
-        /// <summary>
-        ///     Get objects by keys
-        /// </summary>
-        IEnumerable<TEntity> In(Expression<Func<TEntity, object>> field, IEnumerable<dynamic> keys);
+        PagedList<TEntity> GetPageList(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null, Expression<Func<TEntity, object>> filterColumns = null);
 
         #endregion
 
@@ -139,7 +145,7 @@ namespace IBaseFramework.Infrastructure
         /// <summary>
         ///     Update fields in DB
         /// </summary>
-        bool Update(Expression<Func<TEntity, TEntity>> updateValues, Expression<Func<TEntity, bool>> predicate, object updateUserId = null, IDbTransaction transaction = null);
+        bool Update(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, TEntity>> updateValues, object updateUserId = null, IDbTransaction transaction = null);
 
         #endregion
 
@@ -147,7 +153,7 @@ namespace IBaseFramework.Infrastructure
 
     public partial interface IRepository<TEntity> where TEntity : EntityBase
     {
-        #region Count
+        #region FunctionAsync
 
         /// <summary>
         ///     Get number of rows
@@ -169,52 +175,58 @@ namespace IBaseFramework.Infrastructure
         /// </summary>
         Task<int> CountAsync(Expression<Func<TEntity, object>> distinctField, Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null);
 
+        /// <summary>
+        ///     Get number of Sum with WHERE clause
+        /// </summary>
+        Task<TResult?> SumAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
+        /// <summary>
+        ///     Get number of Min with WHERE clause
+        /// </summary>
+        Task<TResult?> MinAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
+        /// <summary>
+        ///     Get number of Max with WHERE clause
+        /// </summary>
+        Task<TResult?> MaxAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
+        /// <summary>
+        ///    Get number of Avg with WHERE clause
+        /// </summary>
+        Task<TResult?> AvgAsync<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition, IDbTransaction transaction = null) where TResult : struct;
+
         #endregion
 
-        #region Get
+        #region GetAsync
 
         /// <summary>
         ///     Get object by Id
         /// </summary>
-        Task<TEntity> GetAsync(object id, IDbTransaction transaction = null);
+        Task<TEntity> GetAsync(object id, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get first object
         /// </summary>
-        Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null);
+        Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get all objects
         /// </summary>
-        Task<IEnumerable<TEntity>> GetAllAsync(IDbTransaction transaction = null);
+        Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get all objects
         /// </summary>
-        Task<IEnumerable<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, IDbTransaction transaction = null);
+        Task<IEnumerable<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, IDbTransaction transaction = null);
 
         /// <summary>
         ///     Get page objects
         /// </summary>
-        Task<PagedList<TEntity>> GetPageListAsync(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null);
+        Task<PagedList<TEntity>> GetPageListAsync(Expression<Func<TEntity, bool>> predicate, int pageIndex, int pageSize, string orderBy = null, Expression<Func<TEntity, object>> filterColumns = null);
 
-        #endregion
+        #endregion        
 
-        #region In
-
-        /// <summary>
-        ///     Get objects by keys
-        /// </summary>
-        Task<IEnumerable<TEntity>> InAsync(IEnumerable<dynamic> keys);
-
-        /// <summary>
-        ///     Get objects by keys
-        /// </summary>
-        Task<IEnumerable<TEntity>> InAsync(Expression<Func<TEntity, object>> field, IEnumerable<dynamic> keys);
-
-        #endregion
-
-        #region Exist
+        #region ExistAsync
 
         /// <summary>
         ///     exist
@@ -223,7 +235,7 @@ namespace IBaseFramework.Infrastructure
 
         #endregion
 
-        #region Add
+        #region AddAsync
 
         /// <summary>
         ///     Insert object to DB
@@ -237,7 +249,7 @@ namespace IBaseFramework.Infrastructure
 
         #endregion
 
-        #region Delete
+        #region DeleteAsync
 
         /// <summary>
         ///     Delete object from DB
@@ -251,7 +263,7 @@ namespace IBaseFramework.Infrastructure
 
         #endregion
 
-        #region Update
+        #region UpdateAsync
 
         /// <summary>
         ///     Update object in DB
@@ -271,8 +283,9 @@ namespace IBaseFramework.Infrastructure
         /// <summary>
         ///     Update fields in DB
         /// </summary>
-        Task<bool> UpdateAsync(Expression<Func<TEntity, TEntity>> updateValues, Expression<Func<TEntity, bool>> predicate, object updateUserId = null, IDbTransaction transaction = null);
+        Task<bool> UpdateAsync(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, TEntity>> updateValues, object updateUserId = null, IDbTransaction transaction = null);
 
         #endregion
+
     }
 }

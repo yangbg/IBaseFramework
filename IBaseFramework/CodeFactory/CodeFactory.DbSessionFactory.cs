@@ -2,8 +2,8 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using IBaseFramework.Utility.Extension;
 
 namespace IBaseFramework.CodeFactory
 {
@@ -77,7 +77,7 @@ namespace {nameSpacePrefix}.Domain
                 {
                     var name = type.Name;
                     var comment = string.Empty;
-                    var attr = type.GetAttribute<DescriptionAttribute>();
+                    var attr = type.GetCustomAttribute<DescriptionAttribute>();
                     if (attr != null)
                     {
                         comment = attr.Description;

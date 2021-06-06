@@ -101,10 +101,11 @@ namespace IBaseFramework.DapperExtension
         #endregion
 
         #region GetSelect
+
         /// <inheritdoc />
-        public virtual SqlQuery GetSelect(Expression<Func<TEntity, bool>> predicate, bool getFirst)
+        public virtual SqlQuery GetSelect(Expression<Func<TEntity, bool>> predicate, Expression<Func<TEntity, object>> filterColumns = null, bool getFirst = false)
         {
-            var sqlQuery = InitBuilderSelect(getFirst);
+            var sqlQuery = InitBuilderSelect(getFirst, filterColumns);
 
             AppendWherePredicateQuery(sqlQuery, predicate);
 
@@ -115,7 +116,7 @@ namespace IBaseFramework.DapperExtension
         }
 
         /// <inheritdoc />
-        public SqlQuery GetSelectById(object id)
+        public SqlQuery GetSelectById(object id, Expression<Func<TEntity, object>> filterColumns = null)
         {
             var keyPropertyInfo = IsIdentity ? new[] { IdentitySqlProperty } : KeySqlProperties;
 
@@ -124,23 +125,11 @@ namespace IBaseFramework.DapperExtension
 
             var keyProperty = keyPropertyInfo[0];
 
-            var sqlQuery = new SqlQuery();
+            var sqlQuery = InitBuilderSelect(true, filterColumns);
+            sqlQuery.SqlBuilder.Append($" WHERE {GetPropertyName(keyProperty.Name)} = @{keyProperty.Name} ");
 
-            var cacheKey = string.Concat(_sqlCacheKey, "_GetSelectById");
-            if (SqlStringCache.ContainsKey(cacheKey))
-            {
-                sqlQuery.SqlBuilder.Append(SqlStringCache[cacheKey]);
-            }
-            else
-            {
-                sqlQuery = InitBuilderSelect(true);
-                sqlQuery.SqlBuilder.Append($" WHERE {GetPropertyName(keyProperty.Name)} = @{keyProperty.Name} ");
-
-                if (Config.SqlProvider == SqlProvider.MySQL || Config.SqlProvider == SqlProvider.PostgreSQL)
-                    sqlQuery.SqlBuilder.Append(" LIMIT 1 ");
-
-                SqlStringCache.TryAdd(cacheKey, sqlQuery.GetSql());
-            }
+            if (Config.SqlProvider == SqlProvider.MySQL || Config.SqlProvider == SqlProvider.PostgreSQL)
+                sqlQuery.SqlBuilder.Append(" LIMIT 1 ");
 
             IDictionary<string, object> dictionary = new Dictionary<string, object>
             {
@@ -151,50 +140,6 @@ namespace IBaseFramework.DapperExtension
             return sqlQuery;
         }
 
-        public SqlQuery GetIn(IEnumerable<dynamic> keys, Expression<Func<TEntity, object>> field = null)
-        {
-            var keyPropertyInfo = IsIdentity ? new[] { IdentitySqlProperty } : KeySqlProperties;
-
-            if (field == null && keyPropertyInfo.Length != 1)
-                throw new NotSupportedException("This method support only 1 key");
-
-            string fieldName;
-            if (field != null)
-            {
-                fieldName = GetPropertyName(field);
-            }
-            else
-            {
-                var keyProperty = keyPropertyInfo[0];
-                fieldName = keyProperty.Name;
-            }
-
-            if (string.IsNullOrEmpty(fieldName))
-                throw new NotSupportedException("fieldName can't be empty");
-
-            var sqlQuery = new SqlQuery();
-
-            var cacheKey = string.Concat(_sqlCacheKey, "_GetIn_", fieldName);
-            if (SqlStringCache.ContainsKey(cacheKey))
-            {
-                sqlQuery.SqlBuilder.Append(SqlStringCache[cacheKey]);
-            }
-            else
-            {
-                sqlQuery = InitBuilderSelect(true);
-                sqlQuery.SqlBuilder.Append($" WHERE {GetPropertyName(fieldName)} in @{fieldName} ");
-
-                SqlStringCache.TryAdd(cacheKey, sqlQuery.GetSql());
-            }
-
-            IDictionary<string, object> dictionary = new Dictionary<string, object>
-            {
-                { fieldName, keys }
-            };
-            sqlQuery.SetParam(dictionary);
-
-            return sqlQuery;
-        }
         #endregion
 
         #region GetDelete
@@ -409,16 +354,16 @@ namespace IBaseFramework.DapperExtension
             var query = new SqlQuery(entity);
 
             var cacheKey = _sqlCacheKey + "GetUpdateByExpression";
-            if (StringCache.ContainsKey(cacheKey))
+            if (SqlStringCache.ContainsKey(cacheKey))
             {
-                query.SqlBuilder.Append(StringCache[cacheKey]);
+                query.SqlBuilder.Append(SqlStringCache[cacheKey]);
             }
             else
             {
                 var properties = SqlProperties.Where(p => !KeySqlProperties.Any(k => k.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase)));
                 query.SqlBuilder.Append($"UPDATE {TableName} SET {string.Join(", ", properties.Select(p => $"{GetPropertyName(p.Name)} = @{p.Name}"))} ");
 
-                StringCache.TryAdd(cacheKey, query.GetSql());
+                SqlStringCache.TryAdd(cacheKey, query.GetSql());
             }
 
             AppendWherePredicateQuery(query, predicate);
@@ -517,6 +462,74 @@ namespace IBaseFramework.DapperExtension
         }
         #endregion
 
+        #region GetSum
+
+        /// <inheritdoc />
+        public virtual SqlQuery GetSum<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct
+        {
+            var propertyName = GetPropertyName(predicate);
+
+            var query = new SqlQuery();
+            query.SqlBuilder.Append($"SELECT SUM({GetPropertyName(propertyName)}) FROM {TableName} ");
+
+            AppendWherePredicateQuery(query, condition);
+
+            return query;
+        }
+
+        #endregion
+
+        #region GetMin
+
+        /// <inheritdoc />
+        public virtual SqlQuery GetMin<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct
+        {
+            var propertyName = GetPropertyName(predicate);
+
+            var query = new SqlQuery();
+            query.SqlBuilder.Append($"SELECT MIN({GetPropertyName(propertyName)}) FROM {TableName} ");
+
+            AppendWherePredicateQuery(query, condition);
+
+            return query;
+        }
+
+        #endregion
+
+        #region GetMax
+
+        /// <inheritdoc />
+        public virtual SqlQuery GetMax<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct
+        {
+            var propertyName = GetPropertyName(predicate);
+
+            var query = new SqlQuery();
+            query.SqlBuilder.Append($"SELECT MAX({GetPropertyName(propertyName)}) FROM {TableName} ");
+
+            AppendWherePredicateQuery(query, condition);
+
+            return query;
+        }
+
+        #endregion
+
+        #region GetAvg
+
+        /// <inheritdoc />
+        public virtual SqlQuery GetAvg<TResult>(Expression<Func<TEntity, TResult>> predicate, Expression<Func<TEntity, bool>> condition) where TResult : struct
+        {
+            var propertyName = GetPropertyName(predicate);
+
+            var query = new SqlQuery();
+            query.SqlBuilder.Append($"SELECT AVG({GetPropertyName(propertyName)}) FROM {TableName} ");
+
+            AppendWherePredicateQuery(query, condition);
+
+            return query;
+        }
+
+        #endregion
+
         #endregion
 
         private void AppendWherePredicateQuery(SqlQuery sqlQuery, Expression<Func<TEntity, bool>> predicate)
@@ -535,23 +548,74 @@ namespace IBaseFramework.DapperExtension
             sqlQuery.SetParam(dictionaryParams);
         }
 
-        private SqlQuery InitBuilderSelect(bool firstOnly)
+        private SqlQuery InitBuilderSelect(bool firstOnly, Expression<Func<TEntity, object>> filterColumns = null)
         {
             var query = new SqlQuery();
 
-            var cacheKey = string.Concat(_sqlCacheKey, "_InitBuilderSelect_", firstOnly);
+            var propertyList = SqlProperties.Select(p => GetPropertyName(p.Name));
+
+            var propertyCacheKey = string.Empty;
+            if (filterColumns == null)
+            {
+                propertyCacheKey = "ALL";
+            }
+            else
+            {
+                var selectMembers = SelectMembers(filterColumns.Body);
+
+                if (selectMembers != null && selectMembers.Any())
+                {
+                    propertyList = selectMembers;
+
+                    propertyCacheKey = string.Join("_", selectMembers);
+                }
+            }
+
+            var cacheKey = string.Concat(_sqlCacheKey, "_InitBuilderSelect_", firstOnly, propertyCacheKey);
             if (SqlStringCache.ContainsKey(cacheKey))
             {
                 query.SqlBuilder.Append(SqlStringCache[cacheKey]);
             }
             else
             {
-                query.SqlBuilder.Append($"SELECT {(firstOnly && Config.SqlProvider == SqlProvider.MSSQL ? "TOP 1 " : "")} {string.Join(", ", SqlProperties.Select(p => GetPropertyName(p.Name)))} FROM {TableName} ");
+                query.SqlBuilder.Append($"SELECT {(firstOnly && Config.SqlProvider == SqlProvider.MSSQL ? "TOP 1 " : "")} {string.Join(", ", propertyList)} FROM {TableName} ");
 
                 SqlStringCache.TryAdd(cacheKey, query.GetSql());
             }
 
             return query;
+        }
+
+        private IEnumerable<string> SelectMembers(Expression properties)
+        {
+            if (properties.NodeType == ExpressionType.Convert)
+            {
+                List<MemberInfo> newArrMembers = new List<MemberInfo>
+                {
+                    ((MemberExpression)((UnaryExpression)properties).Operand).Member
+                };
+                return newArrMembers.Select(u => GetPropertyName(u.Name));
+            }
+            else
+            {
+                var newExp = (NewExpression)properties;
+                if (newExp != null)
+                {
+                    return newExp.Members.Select(u => GetPropertyName(u.Name)).ToList();
+                }
+                else
+                {
+                    var newArr = (NewArrayExpression)properties;
+                    if (newArr != null)
+                    {
+                        List<string> newArrMembers = new List<string>();
+                        foreach (var newArrExp in newArr.Expressions)
+                            newArrMembers.AddRange(SelectMembers(newArrExp));
+                        return newArrMembers.Distinct().ToList();
+                    }
+                    return null;
+                }
+            }
         }
 
         private string GetPropertyName<TSource, TField>(Expression<Func<TSource, TField>> field)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,7 +35,7 @@ namespace IBaseFramework.Utility.Helper
         /// </summary>
         /// <param name="length"></param>
         /// <returns></returns>
-        public static string RandomNums(int length)
+        public static string RandomNum(int length)
         {
             if (length <= 0) return string.Empty;
             var sb = new StringBuilder();
@@ -47,7 +48,7 @@ namespace IBaseFramework.Utility.Helper
         }
 
         /// <summary>
-        /// 随机数字
+        /// 随机字符
         /// </summary>
         /// <param name="length"></param>
         /// <returns></returns>
@@ -88,7 +89,7 @@ namespace IBaseFramework.Utility.Helper
         /// <param name="length">长度</param>
         /// <param name="level">汉字级别，1：1级，2：2级，3：1或2级，默认为1级</param>
         /// <returns></returns>
-        public static string RandomHanzi(int length, int level = 1)
+        public static string RandomHanZi(int length, int level = 1)
         {
             if (length <= 0) return string.Empty;
             var rm = Random();
@@ -121,6 +122,53 @@ namespace IBaseFramework.Utility.Helper
                 bs[i * 2 + 1] = (byte)(positionCode + 0xa0);
             }
             return gb.GetString(bs);
+        }
+
+        /// <summary>
+        /// 两个数之间的随机数
+        /// </summary>
+        /// <param name="firstDecimal"></param>
+        /// <param name="secondDecimal"></param>
+        /// <returns></returns>
+        public static decimal RandomRangeNum(decimal firstDecimal, decimal secondDecimal)
+        {
+            var random = new Random(Guid.NewGuid().GetHashCode());
+
+            var change = Math.Abs(secondDecimal - firstDecimal);
+            var miniData = firstDecimal;
+            if (firstDecimal > secondDecimal)
+                miniData = secondDecimal;
+
+            return Math.Round((decimal)(random.NextDouble() * (double)change + (double)miniData), 2, MidpointRounding.AwayFromZero);
+        }
+
+        public static int RandomRangeNum(int firstInt, int secondInt)
+        {
+            var random = new Random(Guid.NewGuid().GetHashCode());
+            if (firstInt > secondInt)
+                return random.Next(secondInt, firstInt);
+
+            return random.Next(firstInt, secondInt);
+        }
+
+        /// <summary>
+        /// 按权重随机
+        /// </summary>
+        /// <param name="values">{项目值，权重值}</param>
+        /// <returns></returns>
+        public static dynamic RandomRangeNum(Dictionary<dynamic, decimal> values)
+        {
+            var totalWeight = values.Sum(u => u.Value);
+
+            var value = new Random(Guid.NewGuid().GetHashCode()).NextDouble() * (double)totalWeight;
+            foreach (var item in values.OrderByDescending(u => u.Value))
+            {
+                value -= (double)item.Value;
+                if (value <= 0)
+                    return item.Key;
+            }
+
+            return values.First().Key;
         }
     }
 }

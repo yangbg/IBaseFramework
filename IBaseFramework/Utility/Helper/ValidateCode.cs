@@ -58,7 +58,7 @@ namespace IBaseFramework.Utility.Helper
             switch (_vcodeType)
             {
                 case VCodeType.Number:
-                    _vcode = RandomHelper.RandomNums(_length);
+                    _vcode = RandomHelper.RandomNum(_length);
                     break;
                 case VCodeType.Letter:
                     _vcode = RandomHelper.RandomLetters(_length);
@@ -67,13 +67,13 @@ namespace IBaseFramework.Utility.Helper
                     _vcode = RandomHelper.RandomNumAndLetters(_length);
                     break;
                 case VCodeType.ChineseWord:
-                    _vcode = RandomHelper.RandomHanzi(_length);
+                    _vcode = RandomHelper.RandomHanZi(_length);
                     break;
                 case VCodeType.Calculate:
                     GetCalculate();
                     break;
                 default:
-                    _vcode = RandomHelper.RandomNums(_length);
+                    _vcode = RandomHelper.RandomNum(_length);
                     break;
             }
         }

@@ -1,38 +1,40 @@
 ﻿using System;
-using IBaseFramework.Ioc;
 
 namespace IBaseFramework.IdHelper
 {
     public class IdHelper
-    {        
+    {
         public static int WorkId { get; set; }
         public static int DatacenterId { get; set; }
 
-        public static IdHelper Instance => (Singleton<IdHelper>.Instance ?? (Singleton<IdHelper>.Instance = new IdHelper()));
-
-        private static readonly Lazy<IdWorker> LazyWorker = new Lazy<IdWorker>(() =>
+        [ThreadStatic]
+        static IdWorker _idWorker;
+        private static IdWorker IdWorker
         {
-            var workerId = 1;
-            var datacenterId = 1;
-            var sequence = 0;
+            get
+            {
+                if (_idWorker != null)
+                    return _idWorker;
 
-            if (WorkId > 0)
-                workerId = WorkId;
-            if (DatacenterId > 0)
-                datacenterId = DatacenterId;
+                var workerId = 1;
+                var datacenterId = 1;
 
-            return new IdWorker(workerId, datacenterId, sequence);
-        });
+                if (WorkId > 0)
+                    workerId = WorkId;
+                if (DatacenterId > 0)
+                    datacenterId = DatacenterId;
 
+                _idWorker = new IdWorker(workerId, datacenterId, 0);
+                return _idWorker;
+            }
+        }
 
-        private static IdWorker IdWorker => LazyWorker.Value;
+        public static long LongId => IdWorker.NextId();
 
-        public long LongId => IdWorker.NextId();
+        public static Guid Guid => System.Guid.NewGuid();
 
-        public Guid Guid => System.Guid.NewGuid();
+        public static string Guid32 => System.Guid.NewGuid().ToString("N");
 
-        public string Guid32 => System.Guid.NewGuid().ToString("N");
-
-        public string GuidStr => System.Guid.NewGuid().ToString();
+        public static string GuidStr => System.Guid.NewGuid().ToString();
     }
 }

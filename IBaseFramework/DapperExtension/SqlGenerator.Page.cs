@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using IBaseFramework.Infrastructure;
 
 namespace IBaseFramework.DapperExtension
@@ -9,38 +8,43 @@ namespace IBaseFramework.DapperExtension
     {
         public static Tuple<SqlQuery, SqlQuery, int, int> Page(string sql, object param, int pageIndex, int pageSize)
         {
-            //查询字段
-            var rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-            //排序字段
-            var rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.])+(?:\s+(?:ASC|DESC))?)*", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-            //去重字段
-            var rxDistinct = new Regex(@"\ADISTINCT\s", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+            ////查询字段
+            //var rxColumns = new Regex(@"\A\s*SELECT\s+((?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|.)*?)(?<!,\s+)\bFROM\b", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+            ////排序字段
+            //var rxOrderBy = new Regex(@"\bORDER\s+BY\s+(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\w\(\)\.])+(?:\s+(?:ASC|DESC))?)*", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+            ////去重字段
+            //var rxDistinct = new Regex(@"\ADISTINCT\s", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
 
-            //替换 select filed  => select count(*)
-            var m = rxColumns.Match(sql);
-            // 获取 count(*)
-            var g = m.Groups[1];
+            ////替换 select filed  => select count(*)
+            //var m = rxColumns.Match(sql);
+            //// 获取 count(*)
+            //var g = m.Groups[1];
 
-            //查询field
-            var sqlSelectRemoved = sql.Substring(g.Index);
+            ////查询field
+            //var sqlSelectRemoved = sql.Substring(g.Index);
 
-            var count = rxDistinct.IsMatch(sqlSelectRemoved) ? m.Groups[1].ToString().Trim() : "1";
-            var sqlCount = $"{sql.Substring(0, g.Index)} COUNT({count}) {sql.Substring(g.Index + g.Length)}";
-            //查找 order by filed
-            m = rxOrderBy.Match(sqlCount);
-            if (m.Success)
-            {
-                g = m.Groups[0];
-                sqlCount = sqlCount.Substring(0, g.Index) + sqlCount.Substring(g.Index + g.Length);
-            }
+            //var count = rxDistinct.IsMatch(sqlSelectRemoved) ? m.Groups[1].ToString().Trim() : "1";
+            //var sqlCount = $"{sql.Substring(0, g.Index)} COUNT({count}) {sql.Substring(g.Index + g.Length)}";
+            ////查找 order by filed
+            //m = rxOrderBy.Match(sqlCount);
+            //if (m.Success)
+            //{
+            //    g = m.Groups[0];
+            //    sqlCount = sqlCount.Substring(0, g.Index) + sqlCount.Substring(g.Index + g.Length);
+            //}
 
-            if (sql.ToLower().Contains("group by") || sql.ToLower().Contains("DISTINCT(".ToLower()))
-            {
-                sqlCount = $@"SELECT COUNT(1) FROM 
+            //if (sql.ToLower().Contains("group by") || sql.ToLower().Contains("DISTINCT(".ToLower()))
+            //{
+            //    sqlCount = $@"SELECT COUNT(1) FROM 
+            //                    (
+            //                    {sqlCount}
+            //                    )tempCountTable";
+            //}
+            
+            var sqlCount = $@"SELECT COUNT(1) FROM 
                                 (
-                                {sqlCount}
+                                {sql}
                                 )tempCountTable";
-            }
 
             var countSqlQuery = new SqlQuery(param);
             countSqlQuery.SqlBuilder.Append(sqlCount);
