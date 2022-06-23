@@ -1,0 +1,286 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Text.Json" #>
+<#@ assembly name="System.Memory" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Text.Json" #>
+<#@ output extension=".cs" #>
+
+<#@ include file="Manager.ttinclude" #>
+<#
+    var entityName="AccountBill";//数据库表名
+
+    var serviceNameSpace="Child.Education.Domain";//命名空间
+    var serviceName="AccountBill";//服务名称
+    var remark="支付";//备注描述信息
+
+    var isCreateDomainObj= true;//是否创建领域实体
+    var domainObjNameSpace = "Child.Education.DomainObj";//领域实体命名空间
+
+    var outputPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Host.TemplateFile+"..")+"..")+"..");
+
+	var savePath = Path.Combine(outputPath,serviceNameSpace,"Service");//保存路径
+	if (!Directory.Exists(savePath))
+	{
+	    Directory.CreateDirectory(savePath);
+	}
+
+    var domainObjSavePath = Path.Combine(outputPath,domainObjNameSpace,serviceName);//领域实体保存路径
+	if (!Directory.Exists(domainObjSavePath))
+	{
+	    Directory.CreateDirectory(domainObjSavePath);
+	}
+    
+    string filename = this.Host.ResolvePath("db_tables.json");
+    var tableStr = File.ReadAllText(filename);
+
+    TableDetail tableDetail=null;
+
+    var tableList = JsonSerializer.Deserialize<List<TableDetail>>(tableStr);
+    if(tableList!=null)
+    {
+        foreach (var table in tableList)
+        {        
+            var className = table.TableName.Split('_').Last();
+            if(string.Equals(className, entityName, StringComparison.CurrentCultureIgnoreCase))
+                tableDetail = table;
+        }
+    }
+
+    if(tableDetail==null)
+        return "//未找到实体";
+
+    var addSb = new StringBuilder();
+    foreach (var field in tableDetail.TableFields)
+    {
+        if (CodeFactory.CommonColumns.Contains(field.ColumnName.ToLower())) { continue; }
+
+        if (field.IsPrimaryKey)
+        {
+            addSb.AppendLine($"\t\t\t\t{field.ColumnName}=IdHelper.LongId,");
+        }
+        else
+        {
+            addSb.AppendLine($"\t\t\t\t{field.ColumnName}=requestModel.{field.ColumnName},");
+        }
+    }
+
+    var editSb = new StringBuilder();
+    foreach (var field in tableDetail.TableFields)
+    {
+        if (CodeFactory.CommonColumns.Contains(field.ColumnName.ToLower()) || field.IsPrimaryKey) { continue; }
+
+        editSb.AppendLine($"\t\t\tcurrent{entityName}.{field.ColumnName}=requestModel.{field.ColumnName};");
+    }
+
+    var searchSb = new StringBuilder();
+    foreach (var field in tableDetail.TableFields)
+    {
+        if (CodeFactory.CommonColumns.Contains(field.ColumnName.ToLower()) || field.IsPrimaryKey) { continue; }
+
+        if (field.DataType != "string" && field.DataType != "char")//值类型
+        {
+            searchSb.AppendLine($"\t\t\tif (search.{field.ColumnName} > 0)");
+            searchSb.AppendLine($"\t\t\t\tcondition = condition.And(u => u.{field.ColumnName} == search.{field.ColumnName});");
+
+            searchSb.AppendLine();
+        }
+    }
+
+    foreach (var field in tableDetail.TableFields)
+    {
+        if (CodeFactory.CommonColumns.Contains(field.ColumnName.ToLower()) || field.IsPrimaryKey) { continue; }
+
+        if (field.DataType == "string" || field.DataType == "char")//非值类型
+        {
+            searchSb.AppendLine($"\t\t\tif (!string.IsNullOrEmpty(search.{field.ColumnName}))");
+            searchSb.AppendLine($"\t\t\t\tcondition = condition.And(u => u.{field.ColumnName}.StartsWith(search.{field.ColumnName}));");
+
+            searchSb.AppendLine();
+        }
+    }     
+    
+    var manager = Manager.Create(Host, GenerationEnvironment);
+    manager.StartNewFile($"{serviceName}Service.cs",savePath);
+#>
+
+/*namespace <#=serviceNameSpace#>
+{
+    /// <summary>
+    /// <#=remark#> 服务接口
+    /// </summary>
+    public partial interface I<#=serviceName#>Service : IDependency
+    {
+        Result<long> Add(<#=serviceName#>Request requestModel);
+        Result Edit(long id, <#=serviceName#>Request requestModel);
+        Result Delete(params long[] ids);
+        Result<<#=serviceName#>Response> GetById(long id);
+        Result<PagedList<<#=serviceName#>Response>> GetByPage(<#=serviceName#>Search search);
+    }
+
+    /// <summary>
+    /// <#=remark#> 服务实现
+    /// </summary>
+    public partial class <#=serviceName#>Service : BaseService, I<#=serviceName#>Service
+    {
+        public <#=serviceName#>Service(IDbSession dbSession) : base(dbSession)
+        {
+        }
+
+        #region 添加 <#=remark#>
+        /// <summary>
+        /// 添加 <#=remark#>
+        /// </summary>
+        /// <param name=""requestModel""></param>
+        /// <returns></returns>
+        public Result<long> Add(<#=serviceName#>Request requestModel)
+        {
+            if (requestModel == null)
+                return Result.Error<long>(MsgParameterError);
+
+            var new<#=serviceName#> = new <#=serviceName#>()
+            {
+<#=addSb#>
+            };
+
+            var result = DbSession.<#=serviceName#>Repository.Add(new<#=serviceName#>);
+            return result != null ?  Result.Success(new<#=serviceName#>.{(key == null ? "Id" : key.Name)}) : Result.Error<long>(MsgAddError);
+        }
+        #endregion
+
+        #region 修改 <#=remark#>
+        /// <summary>
+        /// 修改 <#=remark#>
+        /// </summary>
+        /// <param name=""id""></param>
+        /// <param name=""requestModel""></param>
+        /// <returns></returns>
+        public Result Edit(long id, <#=serviceName#>Request requestModel)
+        {
+            if (id < 1 || requestModel == null)
+                return Result.Error(MsgParameterError);
+
+            var current<#=serviceName#> = DbSession.<#=serviceName#>Repository.Get(id);
+            if (current<#=serviceName#> == null)
+                return Result.Error(""该<#=remark#>不存在！"");
+
+<#=editSb#>
+
+            var result = DbSession.<#=serviceName#>Repository.Update(current<#=serviceName#>);
+            return result ?  Result.Success(MsgEditSuccess) : Result.Error(MsgEditError);
+        }
+        #endregion
+
+        #region 删除 <#=remark#>
+        /// <summary>
+        /// 删除 <#=remark#>
+        /// </summary>
+        /// <param name=""ids""></param>
+        /// <returns></returns>
+        public Result Delete(params long[] ids)
+        {
+            if (ids == null || ids.Length < 1)
+                return Result.Error(MsgParameterError);
+
+            bool result;
+            if (ids.Length == 1)
+            {
+                var id = ids.First();
+                result = DbSession.<#=serviceName#>Repository.Delete(u => u.{(key == null ? "Id" : key.Name)} == id);
+            }
+            else
+            {
+                result = DbSession.<#=serviceName#>Repository.Delete(u => ids.Contains(u.{(key == null ? "Id" : key.Name)}));
+            }
+
+            return result ?  Result.Success(MsgDeleteSuccess) : Result.Error(MsgDeleteError);
+        }
+        #endregion
+
+        #region 查询 <#=remark#>
+        /// <summary>
+        /// 根据Id查询 <#=remark#>
+        /// </summary>
+        /// <param name=""id""></param>
+        /// <returns></returns>
+        public Result<<#=serviceName#>Response> GetById(long id)
+        {
+            if (id < 0)
+                return Result.Error<<#=serviceName#>Response>(MsgParameterError);
+
+            var result = DbSession.<#=serviceName#>Repository.Get(id);
+            return  Result.Success(result.MapTo<<#=serviceName#>Response>());
+        }
+
+        /// <summary>
+        /// 分页查询 <#=remark#>
+        /// </summary>
+        /// <param name=""search""></param>
+        /// <returns></returns>
+        public Result<PagedList<<#=serviceName#>Response>> GetByPage(<#=serviceName#>Search search)
+        {
+            if (search == null)
+                return Result.Error<PagedList<<#=serviceName#>Response>>(MsgParameterError);
+
+            var condition = DbSession.<#=serviceName#>Repository.ExpressionTrue();
+            condition = condition.And(u => u.IsDeleted == false);
+
+<#=searchSb#>
+
+            var result = DbSession.<#=serviceName#>Repository.GetPageList(condition, search.PageIndex, search.PageSize, ""CreateTime desc"");
+            return  Result.Success(result.MapTo<PagedList<<#=serviceName#>Response>>());
+        }
+        #endregion
+    }
+}*/
+
+
+<#        
+    var fieldStr = new StringBuilder();
+    var objFileNames = new Dictionary<string,(string,string)>();
+    if(isCreateDomainObj)
+    {
+        objFileNames.Add($"{serviceName}Request",("请求实体","IRequestBase"));
+        objFileNames.Add($"{serviceName}Response",("返回实体","IResponseBase"));
+        objFileNames.Add($"{serviceName}Search",("查询实体","Pager"));
+
+        foreach(var field in tableDetail.TableFields)
+        {
+            if (CodeFactory.CommonColumns.Contains(field.ColumnName.ToLower()))
+            {
+                continue;
+            }
+
+            fieldStr.AppendLine($"\t\t/// <summary>");
+            fieldStr.AppendLine($"\t\t/// {field.Comment}");
+            fieldStr.AppendLine($"\t\t/// </summary>");
+            fieldStr.AppendLine($"\t\t[Description(\"{field.Comment}\")]");
+            fieldStr.AppendLine($"\t\tpublic {field.DataType} {field.ColumnName} {{ get; set; }}");
+            fieldStr.AppendLine("");
+        }
+    }
+
+    foreach(var fileName in objFileNames)
+    {
+        manager.StartNewFile($"{fileName.Key}.cs",domainObjSavePath);
+#>
+using IBaseFramework.BaseService;
+using System.ComponentModel;
+namespace <#=domainObjNameSpace#>.<#=serviceName#>
+{
+    /// <summary>
+	/// <#=remark#> <#=fileName.Value.Item1#>
+	/// </summary>
+    public class <#=fileName.Key#> : <#=fileName.Value.Item2#>
+    {
+<#=fieldStr#>
+    }
+}
+
+<#
+    }
+        manager.EndBlock();
+        manager.Process(true);
+#>

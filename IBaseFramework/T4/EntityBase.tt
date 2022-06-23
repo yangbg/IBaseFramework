@@ -1,0 +1,29 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ include file="Manager.ttinclude" #>
+<#
+    var nameSpace="Child.Education.Entity";//命名空间
+    
+    var outputPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Host.TemplateFile+"..")+"..")+"..");
+	var savePath = Path.Combine(outputPath,nameSpace,"");//保存路径
+	if (!Directory.Exists(savePath))
+	{
+	    Directory.CreateDirectory(savePath);
+	}
+
+    var manager = Manager.Create(Host, GenerationEnvironment);
+    manager.StartNewFile("EntityBase.cs",savePath);
+#>
+using IBaseFramework.Base;
+
+namespace <#= nameSpace #>
+{
+    public class <#= "EntityBase" #> : EntityBase<long>
+    {
+    }
+}
+
+<#
+    manager.EndBlock();
+    manager.Process(true);
+#>

@@ -1,0 +1,76 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="netstandard" #>
+<#@ assembly name="System" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Text.Json" #>
+<#@ assembly name="System.Memory" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Text.Json" #>
+<#@ output extension=".cs" #>
+<#@ include file="Manager.ttinclude" #>
+<#    
+    var nameSpace="Child.Education.Domain";//命名空间
+
+    var outputPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Host.TemplateFile+"..")+"..")+"..");
+	var savePath = Path.Combine(outputPath,nameSpace,"");//保存路径
+	if (!Directory.Exists(savePath))
+	{
+	    Directory.CreateDirectory(savePath);
+	}
+
+    string filename = this.Host.ResolvePath("db_tables.json");
+    var tableStr = File.ReadAllText(filename);
+
+    var tableList = JsonSerializer.Deserialize<List<TableDetail>>(tableStr);
+    if(tableList!=null)
+    {
+        var manager = Manager.Create(Host, GenerationEnvironment);
+        manager.StartNewFile("DbSession.cs",savePath);
+#>
+using IBaseFramework.Base;
+using IBaseFramework.Infrastructure;
+using Child.Education.Entity;
+namespace <#=nameSpace#>
+{
+    public partial class DbSession: UnitOfWork, IDbSession
+    {
+<#        
+        foreach(var table in tableList)
+        {
+            var className=table.TableName.Split('_').Last();
+#>
+        /// <summary>
+        ///<#=table.TableComment#>
+        /// </summary>
+        public IRepository<<#=className#>> <#=className#>Repository => GetRepository<<#=className#>>();
+
+<#
+        }
+#>
+    }
+
+    public partial interface IDbSession: IUnitOfWork, IDependency
+    {
+<#
+        foreach(var table in tableList)
+        {
+            var className=table.TableName.Split('_').Last();
+#>
+        /// <summary>
+        ///<#=table.TableComment#>
+        /// </summary>
+        IRepository<<#=className#>> <#=className#>Repository { get; }
+
+<#
+        }
+#>
+    }
+}
+<#        
+        manager.EndBlock();
+        manager.Process(true);
+    }
+#>

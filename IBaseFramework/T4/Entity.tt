@@ -1,0 +1,108 @@
+<#@ template debug="true" hostspecific="true" language="C#" #>
+
+<#@ assembly name="netstandard" #>
+<#@ assembly name="System" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Text.Json" #>
+<#@ assembly name="System.Memory" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Text.Json" #>
+
+<#@ output extension=".cs" #>
+<#@ include file="Manager.ttinclude" #>
+
+<#
+    var nameSpace="Child.Education.Entity";//命名空间
+    
+    var outputPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Host.TemplateFile+"..")+"..")+"..");
+	var savePath = Path.Combine(outputPath,nameSpace,"");//保存路径
+	if (!Directory.Exists(outputPath))
+	{
+	    Directory.CreateDirectory(outputPath);
+	}
+
+    string filename = this.Host.ResolvePath("db_tables.json");
+    var tableStr = File.ReadAllText(filename);
+
+    var tableList = JsonSerializer.Deserialize<List<TableDetail>>(tableStr);
+    if(tableList!=null)
+    {
+        var manager = Manager.Create(Host, GenerationEnvironment);
+
+        foreach(var table in tableList)
+        {
+            var className=table.TableName.Split('_').Last();
+
+            var hasCommon = table.TableFields.Exists(u => string.Equals(u.ColumnName, "Version", StringComparison.CurrentCultureIgnoreCase));
+            var baseClassName= hasCommon ? "EntityBase" : "EntityBaseEmpty";
+
+            manager.StartNewFile(className+".cs",savePath);
+            
+            var staticMStr = new StringBuilder();
+            staticMStr.AppendLine($"\t\t\tpublic const string TableName = \"{table.TableName}\";");
+            foreach(var field in table.TableFields)
+            {
+                staticMStr.AppendLine($"\t\t\tpublic const string {field.ColumnName} = \"{field.ColumnName}\";");
+            }
+            
+            var fieldStr = new StringBuilder();
+            foreach(var field in table.TableFields)
+            {
+                if (CodeFactory.CommonColumns.Contains(field.ColumnName.ToLower()))
+                {
+                    continue;
+                }
+
+                fieldStr.AppendLine($"\t\t/// <summary>");
+                fieldStr.AppendLine($"\t\t/// {field.Comment}");
+                fieldStr.AppendLine($"\t\t/// </summary>");
+
+                if(field.IsPrimaryKey)
+                {
+                    if(field.IsAutoIncrement)
+                    {
+                        fieldStr.AppendLine($"\t\t[AutoIncrementKey]");
+                    }
+                    else  
+                    {
+                        fieldStr.AppendLine($"\t\t[Key]");
+                    }
+                }
+
+                fieldStr.AppendLine($"\t\t[Description(\"{field.Comment}\")]");
+                fieldStr.AppendLine($"\t\tpublic {field.DataType} {field.ColumnName} {{ get; set; }}");
+                fieldStr.AppendLine("");
+            }
+
+#>
+using System.ComponentModel;
+using IBaseFramework.Base;
+using IBaseFramework.Infrastructure;
+
+namespace <#=nameSpace#>
+{
+    /// <summary>
+    ///<#=table.TableComment#>
+    /// </summary>
+    [Description("<#=table.TableComment#>")]
+    [Table("<#=table.TableName#>")]
+    public class <#=className#> : <#=baseClassName#>
+    {
+        /*public static class M
+        {
+<#=staticMStr#>
+        }*/
+        
+<#=fieldStr#>
+
+    }
+}
+<#
+        }
+        manager.EndBlock();
+        manager.Process(true);
+    }
+#>

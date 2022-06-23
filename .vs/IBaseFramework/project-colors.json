@@ -1,0 +1,21 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "66638a0e-cceb-48bf-af92-c143e9a159a9": {
+      "ProjectGuid": "66638a0e-cceb-48bf-af92-c143e9a159a9",
+      "DisplayName": "IBaseFramework",
+      "ColorIndex": 0
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "杂项文件",
+      "ColorIndex": -1
+    },
+    "563b1d28-9365-42e9-860f-9efc91ec2b35": {
+      "ProjectGuid": "563b1d28-9365-42e9-860f-9efc91ec2b35",
+      "DisplayName": "IBaseFramework.NUnitTest",
+      "ColorIndex": 1
+    }
+  },
+  "NextColorIndex": 2
+}
