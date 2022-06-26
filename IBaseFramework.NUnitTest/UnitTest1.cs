@@ -14,7 +14,7 @@ namespace IBaseFramework.NUnitTest
 {
     public class Tests
     {
-        [SetUp]
+        [SetUp] 
         public void Setup()
         {
             DapperContext.DbConfigEventHandle += config =>
@@ -189,8 +189,8 @@ namespace IBaseFramework.NUnitTest
             //var userList4 = dbsession.UserRepository.Join<User, Score>((u, s) => u.UserId != s.UserId).Where(u => u.Item1.Age < 20).OrderByDescending(u => u.Item1.Age).Select(u => u.Item1).ToPageList(1, 2);
             //System.Console.WriteLine(userList4.ToJson());
 
-            //var userList5 = dbsession.UserRepository.Select(u => "MAX(Age)").FirstOrDefault();
-            //System.Console.WriteLine(userList5);
+            var userList5 = dbsession.UserRepository.Select(u => "MAX(Age)").FirstOrDefault();
+            System.Console.WriteLine(userList5);
 
             var userNames = new List<string>() { "a", "b", "c" };
             var userIds = new List<long> { 1, 2, 3, 4 };
